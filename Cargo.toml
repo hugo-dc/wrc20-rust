@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ewasm_api = { git = "https://github.com/ewasm/ewasm-rust-api", branch = "master" }
-bigint = "4.4.1"
-[patch.crates-io]
-rustc-serialize = { git = "https://github.com/cdetrio/rustc-serialize", branch = "for-wasm" }
+
+[profile.release]
+lto = true
+opt-level = 'z'
