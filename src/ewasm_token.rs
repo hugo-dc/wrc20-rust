@@ -30,7 +30,6 @@ pub fn main() {
         let mut address = Address::default();
         address.bytes.copy_from_slice(&address_data[0..20]);
 
-        let _test = ewasm_api::caller();
         let mut storage_key = StorageKey::default();
 
         storage_key.bytes[12..].copy_from_slice(&address.bytes[0..20]);
@@ -80,27 +79,34 @@ pub fn main() {
         let recipient_balance = ewasm_api::storage_load(&recipient_key);
 
         // Substract sender balance
-        let sb_u256 = bigint::uint::U256::from_big_endian(&sender_balance.bytes[0..32]);
-        let val_u256 = bigint::uint::U256::from_big_endian(&value.bytes[0..32]);
+        let mut sb_bytes: [u8; 8] = Default::default();
+        sb_bytes.copy_from_slice(&sender_balance.bytes[24..32]);
+        let sb_u64 = u64::from_be_bytes(sb_bytes);
 
-        let new_sb_u256 = sb_u256 - val_u256;
+        let mut val_bytes: [u8; 8] = Default::default();
+        val_bytes.copy_from_slice(&value.bytes[24..32]);
+        let val_u64 = u64::from_be_bytes(val_bytes);
+
+        let new_sb_u64 = sb_u64 - val_u64;
 
         let mut sb_value = StorageValue::default();
-        let mut new_sb_bytes: [u8;32] = Default::default();
-        new_sb_u256.to_big_endian(&mut new_sb_bytes);
+        let mut new_sb_bytes: [u8;8] = Default::default();
+        new_sb_bytes = new_sb_u64.to_be_bytes();
 
-        sb_value.bytes.copy_from_slice(&new_sb_bytes[0..32]);
-
+        sb_value.bytes[24..32].copy_from_slice(&new_sb_bytes[0..8]);
+        
         // Adds recipient balance
-        let rc_u256 = bigint::uint::U256::from_big_endian(&recipient_balance.bytes[0..32]);
+        let mut rc_bytes: [u8; 8] = Default::default();
+        rc_bytes.copy_from_slice(&recipient_balance.bytes[24..32]);
+        let rc_u64 = u64::from_be_bytes(rc_bytes);
 
-        let new_rc_u256 = rc_u256 + val_u256;
+        let new_rc_u64 = rc_u64 + val_u64;
         
         let mut rc_value = StorageValue::default();
-        let mut new_rc_bytes: [u8; 32] = Default::default();
-        new_rc_u256.to_big_endian(&mut new_rc_bytes);
-        
-        rc_value.bytes.copy_from_slice(&new_rc_bytes[0..32]);
+        let mut new_rc_bytes: [u8; 8] = Default::default();
+        new_rc_bytes = new_rc_u64.to_be_bytes();
+
+        rc_value.bytes[24..32].copy_from_slice(&new_rc_bytes[0..8]);
 
         ewasm_api::storage_store(&sender_key, &sb_value); 
         ewasm_api::storage_store(&recipient_key, &rc_value); 

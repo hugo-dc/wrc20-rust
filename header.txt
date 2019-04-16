@@ -18,5 +18,5 @@ wrc20Challenge:
       nonce: ''
       storage: {
         # Hardcoded token balances: as specified in the prompt
-        0xdeadbeef00000000000000000000000000000000: 1000000,
+        0xeD09375DC6B20050d242d1611af97eE4A6E93CAd: 1000000
       }
