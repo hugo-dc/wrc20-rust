@@ -7,10 +7,7 @@ authors = ["cdetrio <cdetrio@gmail.com>", "hugo-dc <jhugodc@gmail.com>"]
 path = "src/ewasm_token.rs"
 crate-type = ["cdylib"]
 
-[dependencies]
-ewasm_api = { git = "https://github.com/ewasm/ewasm-rust-api", branch = "master" }
-
 [profile.release]
 lto = true
-opt-level = 'z'
+#opt-level = 'z'
 debug = false
