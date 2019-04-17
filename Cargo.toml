@@ -13,3 +13,4 @@ ewasm_api = { git = "https://github.com/ewasm/ewasm-rust-api", branch = "master"
 [profile.release]
 lto = true
 opt-level = 'z'
+debug = false
