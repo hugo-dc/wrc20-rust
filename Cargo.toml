@@ -8,7 +8,7 @@ path = "src/ewasm_token.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-ewasm_api = { git = "https://github.com/ewasm/ewasm-rust-api", branch = "master" }
+ewasm_api = { git = "https://github.com/ewasm/ewasm-rust-api", branch = "wee-alloc" }
 
 [profile.release]
 lto = true
