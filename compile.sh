@@ -14,3 +14,6 @@ cat footer.txt >> $TNAME
 
 rm ~/workspace/tests2/src/GeneralStateTestsFiller/stEWASMTests/$TNAME
 cp $TNAME ~/workspace/tests2/src/GeneralStateTestsFiller/stEWASMTests/$TNAME
+cd ~/workspace/aleth/build/test/
+ETHEREUM_TEST_PATH=/home/hugo/workspace/tests2/ ./testeth -t GeneralStateTests/stEWASMTests -- --filltests --vm /home/hugo/workspace/hera/build/src/libhera.so  --singlenet "Byzantium" --singletest wrc20Challenge
+cd -
