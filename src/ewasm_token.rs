@@ -10,14 +10,29 @@ extern "C" {
     pub fn ethereum_getCaller(resultOffset: *const u32);
 }
 
-
 #[no_mangle]
 pub fn main() {
+
+    let decimals = 0;
+    
+    let total_supply: u32 = 100000000;
+                       // 0x73  38   95  4a  68    f7  2e   8a  53   d4  3a  68   35  ee   45  cd   5f  01 4c   76
+    let owner: [u8; 20] = [115, 56, 149, 74, 104, 247, 46, 138, 83, 212, 58, 104, 53, 238, 69, 205, 95, 1, 76, 118 ];
+    
     // 0x9993021a do_balance() ABI signature
     let do_balance_signature: [u8; 4] = [153, 147, 2, 26];
 
     // 0x5d359fbd do_transfer() ABI signature
     let do_transfer_signature: [u8; 4] = [93, 53, 159, 189];
+
+    // 0x06fdde03 name() ABI signature
+    let name_signature: [u8;4] = [6, 253, 222, 3];
+
+    // 0x95d89b41 symbol() ABI signature
+    let symbol_signature: [u8;4] = [149, 216, 155, 65];
+    
+    // 0x1086a9aa approve() ABI signature
+    let approve_signature: [u8; 4] = [16, 134, 169, 170];
     
 
     let data_size: u32;
@@ -156,6 +171,36 @@ pub fn main() {
         unsafe {
             ethereum_storageStore(recipient_key.as_ptr() as *const u32, rc_value.as_ptr() as *const u32);
         }
-    } 
+    }
+
+    // NAME
+    if function_selector == name_signature {
+        let token_name = "EwasmCoin";
+        unsafe {
+            ethereum_finish(token_name.as_ptr() as *const u32, token_name.len() as u32);
+        }
+    }
+
+    // SYMBOL
+    if function_selector == symbol_signature {
+        let symbol = "EWC";
+        unsafe {
+            ethereum_finish(symbol.as_ptr() as *const u32, symbol.len() as u32);
+        }
+    }
+
+    // DECIMALS
+    
+    // APPROVE
+    if function_selector == approve_signature {
+        
+    }
+
+    // ALLOWANCE
+
+    // TRANSFERFROM
+
+    // TOTALSUPPLY
+    
     return;
 }
