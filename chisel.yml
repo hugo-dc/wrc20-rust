@@ -1,0 +1,11 @@
+ewasm:
+  file: "target/wasm32-unknown-unknown/release/ewasm_token.wasm"
+  output: "target/wasm32-unknown-unknown/release/ewasm_token.wasm"
+  remapimports:
+    preset: "ewasm"
+  trimexports:
+    preset: "ewasm"
+  verifyimports:
+    preset: "ewasm"
+  verifyexports:
+    preset: "ewasm"
