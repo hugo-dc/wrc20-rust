@@ -7,6 +7,9 @@ authors = ["cdetrio <cdetrio@gmail.com>", "hugo-dc <jhugodc@gmail.com>"]
 path = "src/ewasm_token.rs"
 crate-type = ["cdylib"]
 
+[dependencies]
+sha3 = "0.8.2"
+
 [profile.release]
 lto = true
 opt-level = 'z'

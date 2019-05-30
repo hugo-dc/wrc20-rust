@@ -1,4 +1,6 @@
 // see ewasm "WRC20" pseudocode https://gist.github.com/axic/16158c5c88fbc7b1d09dfa8c658bc363
+extern crate sha3;
+use sha3::{Digest, Keccak256};
 
 extern "C" {
     pub fn ethereum_getCallDataSize() -> u32;
@@ -193,7 +195,43 @@ pub fn main() {
     
     // APPROVE
     if function_selector == approve_signature {
-        
+        // "allowance".sender.spender = _value
+        let allowance: [u8; 9] = [97, 108, 108, 111, 119, 97, 110, 99, 101]; // "allowance"
+
+        let mut sender: [u8; 20] = [0;20];
+        unsafe {
+            ethereum_getCaller(sender.as_mut_ptr() as *const u32);
+        }
+
+        let mut spender: [u8;20] = [0;20];
+        unsafe {
+            ethereum_callDataCopy(spender.as_mut_ptr() as *const u32, 4, 20);
+        }
+
+        let mut value: [u8;8] = [0;8];
+        unsafe {
+            ethereum_callDataCopy(value.as_mut_ptr() as *const u32, 24, 8);
+        }
+
+        // concatenation: "allowance".sender.spender
+        let mut key: Vec<u8> = allowance.to_vec();
+        key.extend_from_slice(&sender);
+        key.extend_from_slice(&spender);
+
+        let mut hasher = Keccak256::default();
+
+        hasher.input(key);
+
+        // use hash of concatenation as storage key
+        let storage_key = hasher.result();
+
+        // store value
+        let mut storage_value: [u8;32] = [0;32];
+        storage_value[24..32].copy_from_slice(&value[0..8]);
+
+        unsafe {
+            ethereum_storageStore(storage_key.as_ptr() as *const u32, storage_value.as_ptr() as *const u32);
+        }
     }
 
     // ALLOWANCE
