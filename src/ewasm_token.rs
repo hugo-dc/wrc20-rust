@@ -53,7 +53,6 @@ pub fn main() {
         ethereum_callDataCopy(function_selector.as_ptr() as *const u32, 0, 4);
     }
 
-
     // DO BALANCE
     if function_selector == do_balance_signature {
         if data_size != 24 {
@@ -62,15 +61,20 @@ pub fn main() {
             }
         }
 
+        let balanceOf: [u8;9] = [98, 97, 108, 97, 110, 99, 101, 79, 102]; // "balanceOf"
+
         let address: [u8; 20] = [0;20];
         unsafe {
             ethereum_callDataCopy(address.as_ptr() as *const u32, 4, 20);
         }
 
-        let mut storage_key: [u8; 32] = [0;32];
+        let mut pre_storage_key: Vec<u8> = balanceOf.to_vec();
+        pre_storage_key.extend_from_slice(&address);
 
-        storage_key[12..].copy_from_slice(&address[0..20]);
-            
+        let mut hasher = Keccak256::default();
+        hasher.input(pre_storage_key);
+        let storage_key = hasher.result();
+
         let mut balance: [u8;32] = [0;32];
 
         unsafe {
@@ -94,15 +98,20 @@ pub fn main() {
             }
         }
 
+        let balanceOf: [u8;9] = [98, 97, 108, 97, 110, 99, 101, 79, 102]; // "balanceOf"
+
         // Get Sender
         let mut sender: [u8; 20] = [0;20];
         unsafe {
             ethereum_getCaller(sender.as_mut_ptr() as *const u32);
         }
         
-        let mut sender_key: [u8; 32] = [0;32];
+        let mut pre_sender_key: Vec<u8> = balanceOf.to_vec();
+        pre_sender_key.extend_from_slice(&sender);
 
-        sender_key[12..].copy_from_slice(&sender[0..20]);
+        let mut hasher = Keccak256::default();
+        hasher.input(pre_sender_key);
+        let sender_key = hasher.result();
 
         // Get Recipient
         let mut recipient_data: [u8; 20] = [0;20];
@@ -110,8 +119,12 @@ pub fn main() {
             ethereum_callDataCopy(recipient_data.as_mut_ptr() as *const u32, 4, 20);
         }
 
-        let mut recipient_key: [u8;32] = [0;32];
-        recipient_key[12..].copy_from_slice(&recipient_data[..]);
+        let mut pre_recipient_key: Vec<u8> = balanceOf.to_vec();
+        pre_recipient_key.extend_from_slice(&recipient_data);
+
+        let mut hasher = Keccak256::default();
+        hasher.input(pre_recipient_key);
+        let recipient_key = hasher.result();
 
         // Get Value
         let mut value_data: [u8;8] = [0;8];

@@ -303,8 +303,8 @@
         a000000000000000000000000000000000000000:
           storage: {
             # Token balances
-            0xeD09375DC6B20050d242d1611af97eE4A6E93CAd: 500000,
-            0xe929cf2544363bdcee4a976515d5f97758ef476c: 500000
+            0xfcd2f76724ed5243064dd923bd8cf6cfa3ea0d6a9137903fd479deb7a7714b4e: 500000, # balanceOf[0xeD09375DC6B20050d242d1611af97eE4A6E93CAd]
+            0xd7b2af2af2edabd4a832e5bd494f330b89bd4193bbc293d88aad25856e172df3: 500000  # balanceOf[0xe929cf2544363bdcee4a976515d5f97758ef476c]
           }
   transaction:
     data:
