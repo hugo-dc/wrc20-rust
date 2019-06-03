@@ -18,6 +18,10 @@ wrc20Challenge:
       nonce: ''
       storage: {
         # Hardcoded token balances: as specified in the prompt
-        # 0xeD09375DC6B20050d242d1611af97eE4A6E93CAd: 1000000
-        0xfcd2f76724ed5243064dd923bd8cf6cfa3ea0d6a9137903fd479deb7a7714b4e: 1000000
+        # balanceOf[0xeD09375DC6B20050d242d1611af97eE4A6E93CAd]: 1000000
+        0xfcd2f76724ed5243064dd923bd8cf6cfa3ea0d6a9137903fd479deb7a7714b4e: 1000000,
+
+        # Harcode allowance
+        # allowance[0xe929CF2544363bdCEE4a976515d5F97758Ef476c][0xeD09375DC6B20050d242d1611af97eE4A6E93CAd] = 100
+        0x8536ba5bd1e9e92f54241983ac85ea294c0beb843f933dd37e1970093be0979d: 100,
       }
