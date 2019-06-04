@@ -12,15 +12,75 @@ extern "C" {
     pub fn ethereum_getCaller(resultOffset: *const u32);
 }
 
+fn calculate_allowance_hash(sender: &[u8;20], spender: &[u8;20]) -> Vec<u8> {
+    let mut allowance: Vec<u8> = vec![97, 108, 108, 111, 119, 97, 110, 99, 101]; // "allowance"
+    allowance.extend_from_slice(sender);
+    allowance.extend_from_slice(spender);
+
+    let mut hasher = Keccak256::default();
+    hasher.input(allowance);
+
+    hasher.result().as_slice().to_owned()
+}
+
+fn calculate_balance_hash(address: &[u8;20]) -> Vec<u8> {
+    let mut balanceOf: Vec<u8> = vec![98,  97, 108,  97, 110, 99, 101, 79, 102]; // "balanceOf"
+    balanceOf.extend_from_slice(address);
+
+    let mut hasher = Keccak256::default();
+    hasher.input(balanceOf);
+    
+    hasher.result().as_slice().to_owned()
+}
+
+fn get_balance(address: &[u8;20]) -> [u8;32]{
+    let storage_key = calculate_balance_hash(&address);
+
+    let mut balance: [u8;32] = [0;32];
+
+    unsafe {
+        ethereum_storageLoad(storage_key.as_ptr() as *const u32, balance.as_mut_ptr() as *const u32);
+    }
+
+    return balance;
+    
+}
+
+fn set_balance(address: &[u8;20], value: &[u8;32]) {
+    let storage_key = calculate_balance_hash(&address);
+
+    unsafe {
+        ethereum_storageStore(storage_key.as_ptr() as *const u32, value.as_ptr() as *const u32);
+    }
+}
+
+fn get_allowance(sender: &[u8;20], &spender: &[u8;20]) -> [u8;32] {
+    let allowance_key = calculate_allowance_hash(&sender, &spender);
+
+    let mut allowed_value: [u8;32] = [0;32];
+
+    unsafe {
+        ethereum_storageLoad(allowance_key.as_ptr() as *const u32 , allowed_value.as_mut_ptr() as *const u32);
+    }
+
+    return allowed_value;
+}
+
+fn set_allowance(sender: &[u8;20], spender: &[u8;20], value: &[u8;32]) {
+    let allowance_key = calculate_allowance_hash(&sender, &spender);
+
+    unsafe {
+        ethereum_storageStore(allowance_key.as_ptr() as *const u32, value.as_ptr() as *const u32);
+    }
+}
+
 #[no_mangle]
 pub fn main() {
 
     let decimals: u64 = 0;
     
     let total_supply: u64 = 100000000;
-                       // 0x73  38   95  4a  68    f7  2e   8a  53   d4  3a  68   35  ee   45  cd   5f  01 4c   76
-    //let owner: [u8; 20] = [115, 56, 149, 74, 104, 247, 46, 138, 83, 212, 58, 104, 53, 238, 69, 205, 95, 1, 76, 118 ];
-    
+
     // 0x9993021a do_balance() ABI signature
     let do_balance_signature: [u8; 4] = [153, 147, 2, 26];
 
@@ -48,10 +108,6 @@ pub fn main() {
     // 0x2ea0dfe1 transferFrom(address,address,uint64) ABI signature
     let transfer_from_signature: [u8; 4] = [46, 160, 223, 225];
 
-    //
-    let balanceOf: Vec<u8> = vec![98,  97, 108,  97, 110, 99, 101, 79, 102]; // "balanceOf"
-    let allowance: Vec<u8> = vec![97, 108, 108, 111, 119, 97, 110, 99, 101]; // "allowance"
-
     let data_size: u32;
     unsafe {
         data_size = ethereum_getCallDataSize();
@@ -68,7 +124,6 @@ pub fn main() {
         ethereum_callDataCopy(function_selector.as_ptr() as *const u32, 0, 4);
     }
 
-    //
     // DO BALANCE
     if function_selector == do_balance_signature {
         if data_size != 24 {
@@ -82,20 +137,9 @@ pub fn main() {
             ethereum_callDataCopy(address.as_ptr() as *const u32, 4, 20);
         }
 
-        let mut pre_storage_key: Vec<u8> = balanceOf.clone();
-        pre_storage_key.extend_from_slice(&address);
+        let balance = get_balance(&address);
 
-        let mut hasher = Keccak256::default();
-        hasher.input(pre_storage_key);
-        let storage_key = hasher.result();
-
-        let mut balance: [u8;32] = [0;32];
-
-        unsafe {
-            ethereum_storageLoad(storage_key.as_ptr() as *const u32, balance.as_mut_ptr() as *const u32);
-        }
-
-        // checks the balance is not 0
+        // checks balance is not 0
         let blank: [u8; 32] = [0;32];
         if balance != blank {
             unsafe {
@@ -104,7 +148,6 @@ pub fn main() {
         }
     }
 
-    //
     // DO TRANSFER
     if function_selector == do_transfer_signature {
         if data_size != 32 {
@@ -118,26 +161,12 @@ pub fn main() {
         unsafe {
             ethereum_getCaller(sender.as_mut_ptr() as *const u32);
         }
-        
-        let mut pre_sender_key: Vec<u8> = balanceOf.to_vec();
-        pre_sender_key.extend_from_slice(&sender);
-
-        let mut hasher = Keccak256::default();
-        hasher.input(pre_sender_key);
-        let sender_key = hasher.result();
 
         // Get Recipient
-        let mut recipient_data: [u8; 20] = [0;20];
+        let mut recipient: [u8; 20] = [0;20];
         unsafe {
-            ethereum_callDataCopy(recipient_data.as_mut_ptr() as *const u32, 4, 20);
+            ethereum_callDataCopy(recipient.as_mut_ptr() as *const u32, 4, 20);
         }
-
-        let mut recipient_key: Vec<u8> = balanceOf.clone();
-        recipient_key.extend_from_slice(&recipient_data);
-
-        let mut hasher = Keccak256::default();
-        hasher.input(recipient_key);
-        let recipient_key = hasher.result();
 
         // Get Value
         let mut value_data: [u8;8] = [0;8];
@@ -148,16 +177,10 @@ pub fn main() {
         value[24..].copy_from_slice(&value_data[0..8]);
 
         // Get Sender Balance
-        let mut sender_balance: [u8; 32] = [0;32];
-        unsafe {
-            ethereum_storageLoad(sender_key.as_ptr() as *const u32, sender_balance.as_mut_ptr() as *const u32);
-        }
+        let sender_balance = get_balance(&sender);
 
         // Get Recipient Balance
-        let mut recipient_balance: [u8;32] = [0;32];
-        unsafe {
-            ethereum_storageLoad(recipient_key.as_ptr() as *const u32, recipient_balance.as_mut_ptr() as *const u32);
-        }
+        let recipient_balance = get_balance(&recipient);
 
         // Substract sender balance
         let mut sb_bytes: [u8; 8] = [0;8];
@@ -190,18 +213,11 @@ pub fn main() {
 
         rc_value[24..32].copy_from_slice(&new_rc_bytes[0..8]);
 
-        // save new sender balance
-        unsafe {
-            ethereum_storageStore(sender_key.as_ptr() as *const u32, sb_value.as_ptr() as *const u32);
-        }
-
-        // save recipient balance
-        unsafe {
-            ethereum_storageStore(recipient_key.as_ptr() as *const u32, rc_value.as_ptr() as *const u32);
-        }
+        set_balance(&sender, &sb_value);
+        set_balance(&recipient, &rc_value);
+        
     }
 
-    //
     // NAME
     if function_selector == name_signature {
         let token_name = "EwasmCoin";
@@ -210,7 +226,6 @@ pub fn main() {
         }
     }
 
-    //
     // SYMBOL
     if function_selector == symbol_signature {
         let symbol = "EWC";
@@ -219,7 +234,6 @@ pub fn main() {
         }
     }
 
-    //
     // DECIMALS
     if function_selector == decimals_signature {
         let decimals_ptr: *const u64 = &decimals;
@@ -238,7 +252,6 @@ pub fn main() {
     
     // APPROVE
     if function_selector == approve_signature {
-        // "allowance".sender.spender = _value
         // allowance[sender][spender] = _value
 
         let mut sender: [u8; 20] = [0;20];
@@ -256,25 +269,10 @@ pub fn main() {
             ethereum_callDataCopy(value.as_mut_ptr() as *const u32, 24, 8);
         }
 
-        // concatenation: "allowance".sender.spender
-        let mut key: Vec<u8> = allowance.clone();
-        key.extend_from_slice(&sender);
-        key.extend_from_slice(&spender);
-
-        let mut hasher = Keccak256::default();
-
-        hasher.input(key);
-
-        // use hash of concatenation as storage key
-        let storage_key = hasher.result();
-
-        // store value
         let mut storage_value: [u8;32] = [0;32];
         storage_value[24..32].copy_from_slice(&value[0..8]);
+        set_allowance(&sender, &spender, &storage_value);
 
-        unsafe {
-            ethereum_storageStore(storage_key.as_ptr() as *const u32, storage_value.as_ptr() as *const u32);
-        }
     }
 
     // ALLOWANCE
@@ -295,22 +293,7 @@ pub fn main() {
             ethereum_callDataCopy(spender.as_mut_ptr() as *const u32, 24, 20);
         }
 
-        let mut allowance_key: Vec<u8> = allowance.clone();
-        allowance_key.extend_from_slice(&from);
-        allowance_key.extend_from_slice(&spender);
-
-        let mut hasher = Keccak256::default();
-        hasher.input(allowance_key);
-        let allowance_key = hasher.result();
-
-        let mut allowance_value: [u8;32] = [0;32];
-        unsafe {
-            ethereum_storageLoad(allowance_key.as_ptr() as *const u32, allowance_value.as_ptr() as *const u32);
-        }
-
-        //let mut allowed: [u8;8] = [0;8];
-        //allowed.copy_from_slice(&allowance_value[24..32]);
-        //let allowed_ptr: *const u8 = allowed.as_ptr();
+        let allowance_value = get_allowance(&from, &spender);
 
         unsafe {
             ethereum_finish(allowance_value.as_ptr() as *const u32, 32 as u32);
@@ -340,9 +323,9 @@ pub fn main() {
         }
 
         // get recipient
-        let mut recipient_data:[u8;20] = [0;20];
+        let mut recipient:[u8;20] = [0;20];
         unsafe {
-            ethereum_callDataCopy(recipient_data.as_mut_ptr() as *const u32, 24, 20);
+            ethereum_callDataCopy(recipient.as_mut_ptr() as *const u32, 24, 20);
         }
         
         // get value
@@ -354,17 +337,7 @@ pub fn main() {
         let value = u64::from_be_bytes(value_data);
 
         // get owner balance
-        let mut owner_key = balanceOf.clone();
-        owner_key.extend_from_slice(&owner);
-
-        let mut hasher = Keccak256::default();
-        hasher.input(owner_key);
-        let owner_key = hasher.result();
-
-        let mut owner_balance: [u8;32] = [0;32];
-        unsafe {
-            ethereum_storageLoad(owner_key.as_ptr() as *const u32, owner_balance.as_mut_ptr() as *const u32);
-        }
+        let owner_balance = get_balance(&owner);
 
         let mut ob_bytes: [u8;8] = [0;8];
         ob_bytes.copy_from_slice(&owner_balance[24..32]);
@@ -379,18 +352,7 @@ pub fn main() {
         }
 
         // sender has authorization to transfer funds
-        let mut allowance_key  = allowance.clone();
-        allowance_key.extend_from_slice(&owner);
-        allowance_key.extend_from_slice(&sender);
-
-        let mut hasher = Keccak256::default();
-        hasher.input(allowance_key);
-        let allowance_key = hasher.result();
-
-        let mut allowed_value: [u8;32] = [0;32];
-        unsafe {
-            ethereum_storageLoad(allowance_key.as_ptr() as *const u32 , allowed_value.as_mut_ptr() as *const u32);
-        }
+        let mut allowed_value = get_allowance(&owner, &sender);
 
         let mut a_bytes:[u8;8] = [0;8];
         a_bytes.copy_from_slice(&allowed_value[24..32]);
@@ -403,17 +365,7 @@ pub fn main() {
         }
 
         // get recipient balance
-        let mut recipient_key: Vec<u8> = balanceOf.clone();
-        recipient_key.extend_from_slice(&recipient_data);
-
-        let mut hasher = Keccak256::default();
-        hasher.input(recipient_key);
-        let recipient_key = hasher.result();
-
-        let mut recipient_balance: [u8;32] = [0;32];
-        unsafe {
-            ethereum_storageLoad(recipient_key.as_ptr() as *const u32, recipient_balance.as_mut_ptr() as *const u32);
-        }
+        let recipient_balance = get_balance(&recipient);
 
         let mut rb_bytes: [u8;8] = [0;8];
         rb_bytes.copy_from_slice(&recipient_balance[24..32]);
@@ -439,11 +391,9 @@ pub fn main() {
         allowed_bytes = allowed.to_be_bytes();
         stv_allowed[24..32].copy_from_slice(&allowed_bytes[0..8]);
 
-        unsafe {
-            ethereum_storageStore(owner_key.as_ptr() as *const u32, stv_owner_balance.as_ptr() as *const u32);
-            ethereum_storageStore(recipient_key.as_ptr() as *const u32, stv_recipient_balance.as_ptr() as *const u32);
-            ethereum_storageStore(allowance_key.as_ptr() as *const u32, stv_allowed.as_ptr() as *const u32);
-        }
+        set_balance(&owner, &stv_owner_balance);
+        set_balance(&recipient, &stv_recipient_balance);
+        set_allowance(&owner, &sender, &stv_allowed);
 
     }
     
