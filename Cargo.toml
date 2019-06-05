@@ -8,7 +8,12 @@ path = "src/ewasm_token.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-ewasm_api = { git = "https://github.com/ewasm/ewasm-rust-api", branch = "master" }
+sha3 = "0.8.2"
+
+[dependencies.ewasm_api]
+version = "0.9"
+default-features = false
+features = ["std", "qimalloc"]
 
 [profile.release]
 lto = true
